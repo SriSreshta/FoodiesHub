@@ -1,11 +1,11 @@
+// client/src/pages/home.js
 import React, { useEffect, useState } from "react";
 import { useGetUserID } from "../hooks/useGetUserID";
 import axios from "axios";
 
-export const Home = () => {
+function Home() {
   const [recipes, setRecipes] = useState([]);
   const [savedRecipes, setSavedRecipes] = useState([]);
-
   const userID = useGetUserID();
 
   useEffect(() => {
@@ -23,7 +23,7 @@ export const Home = () => {
         const response = await axios.get(
           `http://localhost:3001/recipes/savedRecipes/ids/${userID}`
         );
-        setSavedRecipes(response.data.savedRecipes);
+        setSavedRecipes(response.data.savedRecipes || []);
       } catch (err) {
         console.log(err);
       }
@@ -31,7 +31,7 @@ export const Home = () => {
 
     fetchRecipes();
     fetchSavedRecipes();
-  }, []);
+  }, [userID]);
 
   const saveRecipe = async (recipeID) => {
     try {
@@ -48,28 +48,35 @@ export const Home = () => {
   const isRecipeSaved = (id) => savedRecipes.includes(id);
 
   return (
-    <div>
-      <h1>Recipes</h1>
-      <ul>
-        {recipes.map((recipe) => (
-          <li key={recipe._id}>
-            <div>
-              <h2>{recipe.name}</h2>
-              <button
-                onClick={() => saveRecipe(recipe._id)}
-                disabled={isRecipeSaved(recipe._id)}
-              >
-                {isRecipeSaved(recipe._id) ? "Saved" : "Save"}
-              </button>
-            </div>
-            <div className="instructions">
-              <p>{recipe.instructions}</p>
-            </div>
-            <img src={recipe.imageUrl} alt={recipe.name} />
-            <p>Cooking Time: {recipe.cookingTime} minutes</p>
-          </li>
-        ))}
-      </ul>
+    <div className="page-container">
+      <div className="card wide-card">
+        <h1>🍲 Recipes</h1>
+
+        <ul className="recipe-grid">
+          {recipes.map((recipe) => (
+            <li key={recipe._id} className="recipe-card">
+              {recipe.imageUrl && (
+                <img src={recipe.imageUrl} alt={recipe.name} className="recipe-image" />
+              )}
+              <div className="recipe-content">
+                <h3>{recipe.name}</h3>
+                <p className="muted">{recipe.instructions}</p>
+                <p className="muted">⏱ {recipe.cookingTime} minutes</p>
+
+                <button
+                  onClick={() => saveRecipe(recipe._id)}
+                  disabled={isRecipeSaved(recipe._id)}
+                  className={isRecipeSaved(recipe._id) ? "secondary-btn" : "primary-btn"}
+                >
+                  {isRecipeSaved(recipe._id) ? "Saved" : "Save"}
+                </button>
+              </div>
+            </li>
+          ))}
+        </ul>
+      </div>
     </div>
   );
-};
+}
+
+export default Home;

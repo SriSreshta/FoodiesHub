@@ -6,94 +6,133 @@ import { verifyToken } from "./user.js";
 
 const router = express.Router();
 
+/**
+ * @route   GET /
+ * @desc    Get all recipes
+ */
 router.get("/", async (req, res) => {
   try {
-    const result = await RecipesModel.find({});
-    res.status(200).json(result);
+    const recipes = await RecipesModel.find({});
+    res.status(200).json(recipes);
   } catch (err) {
-    res.status(500).json(err);
+    console.error("Error fetching recipes:", err);
+    res.status(500).json({ message: "Failed to fetch recipes" });
   }
 });
 
-// Create a new recipe
+/**
+ * @route   POST /
+ * @desc    Create a new recipe (Protected)
+ */
 router.post("/", verifyToken, async (req, res) => {
-  const recipe = new RecipesModel({
-    _id: new mongoose.Types.ObjectId(),
-    name: req.body.name,
-    image: req.body.image,
-    ingredients: req.body.ingredients,
-    instructions: req.body.instructions,
-    imageUrl: req.body.imageUrl,
-    cookingTime: req.body.cookingTime,
-    userOwner: req.body.userOwner,
-  });
-  console.log(recipe);
-
   try {
+    const { name, image, ingredients, instructions, imageUrl, cookingTime, userOwner } = req.body;
+
+    const recipe = new RecipesModel({
+      _id: new mongoose.Types.ObjectId(),
+      name,
+      image,
+      ingredients,
+      instructions,
+      imageUrl,
+      cookingTime,
+      userOwner,
+    });
+
     const result = await recipe.save();
     res.status(201).json({
       createdRecipe: {
+        _id: result._id,
         name: result.name,
         image: result.image,
         ingredients: result.ingredients,
         instructions: result.instructions,
-        _id: result._id,
+        cookingTime: result.cookingTime,
+        userOwner: result.userOwner,
       },
     });
   } catch (err) {
-    // console.log(err);
-    res.status(500).json(err);
+    console.error("Error creating recipe:", err);
+    res.status(500).json({ message: "Failed to create recipe" });
   }
 });
 
-// Get a recipe by ID
+/**
+ * @route   GET /:recipeId
+ * @desc    Get a recipe by ID
+ */
 router.get("/:recipeId", async (req, res) => {
   try {
-    const result = await RecipesModel.findById(req.params.recipeId);
-    res.status(200).json(result);
+    const recipe = await RecipesModel.findById(req.params.recipeId);
+    if (!recipe) return res.status(404).json({ message: "Recipe not found" });
+    res.status(200).json(recipe);
   } catch (err) {
-    res.status(500).json(err);
+    console.error("Error fetching recipe by ID:", err);
+    res.status(500).json({ message: "Failed to fetch recipe" });
   }
 });
 
-// Save a Recipe
+/**
+ * @route   PUT /
+ * @desc    Save a recipe for a user
+ */
 router.put("/", async (req, res) => {
-  const recipe = await RecipesModel.findById(req.body.recipeID);
-  const user = await UserModel.findById(req.body.userID);
   try {
-    user.savedRecipes.push(recipe);
-    await user.save();
+    const { recipeID, userID } = req.body;
+
+    const recipe = await RecipesModel.findById(recipeID);
+    if (!recipe) return res.status(404).json({ message: "Recipe not found" });
+
+    const user = await UserModel.findById(userID);
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    // Prevent duplicate saves
+    if (!user.savedRecipes.includes(recipeID)) {
+      user.savedRecipes.push(recipe);
+      await user.save();
+    }
+
     res.status(201).json({ savedRecipes: user.savedRecipes });
   } catch (err) {
-    res.status(500).json(err);
+    console.error("Error saving recipe:", err);
+    res.status(500).json({ message: "Failed to save recipe" });
   }
 });
 
-// Get id of saved recipes
+/**
+ * @route   GET /savedRecipes/ids/:userId
+ * @desc    Get IDs of saved recipes for a user
+ */
 router.get("/savedRecipes/ids/:userId", async (req, res) => {
   try {
     const user = await UserModel.findById(req.params.userId);
-    res.status(201).json({ savedRecipes: user?.savedRecipes });
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    res.status(200).json({ savedRecipes: user.savedRecipes });
   } catch (err) {
-    console.log(err);
-    res.status(500).json(err);
+    console.error("Error fetching saved recipe IDs:", err);
+    res.status(500).json({ message: "Failed to fetch saved recipe IDs" });
   }
 });
 
-// Get saved recipes
+/**
+ * @route   GET /savedRecipes/:userId
+ * @desc    Get saved recipes for a user
+ */
 router.get("/savedRecipes/:userId", async (req, res) => {
   try {
     const user = await UserModel.findById(req.params.userId);
+    if (!user) return res.status(404).json({ message: "User not found" });
+
     const savedRecipes = await RecipesModel.find({
       _id: { $in: user.savedRecipes },
     });
 
-    console.log(savedRecipes);
-    res.status(201).json({ savedRecipes });
+    res.status(200).json({ savedRecipes });
   } catch (err) {
-    console.log(err);
-    res.status(500).json(err);
+    console.error("Error fetching saved recipes:", err);
+    res.status(500).json({ message: "Failed to fetch saved recipes" });
   }
 });
 
-export { router as recipesRouter };
+export default router;
