@@ -26,31 +26,29 @@ router.get("/", async (req, res) => {
  */
 router.post("/", verifyToken, async (req, res) => {
   try {
-    const { name, image, ingredients, instructions, imageUrl, cookingTime, userOwner } = req.body;
+    const { name, description, ingredients, instructions, imageUrl, cookingTime } = req.body;
 
     const recipe = new RecipesModel({
       _id: new mongoose.Types.ObjectId(),
       name,
-      image,
+      description,
       ingredients,
       instructions,
       imageUrl,
       cookingTime,
-      userOwner,
+      userOwner: req.user.id, // pulled from token
     });
 
     const result = await recipe.save();
-    res.status(201).json({
-      createdRecipe: {
-        _id: result._id,
-        name: result.name,
-        image: result.image,
-        ingredients: result.ingredients,
-        instructions: result.instructions,
-        cookingTime: result.cookingTime,
-        userOwner: result.userOwner,
-      },
-    });
+
+    // Automatically add the created recipe to user's savedRecipes
+    await UserModel.findByIdAndUpdate(
+      req.user.id,
+      { $addToSet: { savedRecipes: result._id } },
+      { new: true }
+    );
+
+    res.status(201).json({ createdRecipe: result });
   } catch (err) {
     console.error("Error creating recipe:", err);
     res.status(500).json({ message: "Failed to create recipe" });
@@ -73,26 +71,30 @@ router.get("/:recipeId", async (req, res) => {
 });
 
 /**
- * @route   PUT /
+ * @route   PUT /save
  * @desc    Save a recipe for a user
  */
-router.put("/", async (req, res) => {
+router.put("/save", verifyToken, async (req, res) => {
   try {
-    const { recipeID, userID } = req.body;
+    const { recipeID } = req.body;
+
+    if (!recipeID) {
+      return res.status(400).json({ message: "Recipe ID is required" });
+    }
 
     const recipe = await RecipesModel.findById(recipeID);
     if (!recipe) return res.status(404).json({ message: "Recipe not found" });
 
-    const user = await UserModel.findById(userID);
+    const user = await UserModel.findById(req.user.id);
     if (!user) return res.status(404).json({ message: "User not found" });
 
-    // Prevent duplicate saves
+    // Only push if not already saved
     if (!user.savedRecipes.includes(recipeID)) {
-      user.savedRecipes.push(recipe);
+      user.savedRecipes.push(recipeID);
       await user.save();
     }
 
-    res.status(201).json({ savedRecipes: user.savedRecipes });
+    res.status(200).json({ savedRecipes: user.savedRecipes });
   } catch (err) {
     console.error("Error saving recipe:", err);
     res.status(500).json({ message: "Failed to save recipe" });

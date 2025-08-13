@@ -1,4 +1,4 @@
-// client/src/pages/login.js
+// client/src/pages/Login.js
 import React, { useState } from "react";
 import axios from "axios";
 import { useCookies } from "react-cookie";
@@ -18,12 +18,16 @@ function Login() {
         password,
       });
 
+      // Save token in cookies
       setCookies("access_token", result.data.token);
+
+      // Save userID in localStorage for later use
       window.localStorage.setItem("userID", result.data.userID);
-      // go to home/dashboard after successful login
+
+      // Go to home/dashboard after successful login
       navigate("/home");
     } catch (error) {
-      console.error(error);
+      console.error("Login error:", error);
       alert("Invalid credentials. Please try again.");
     }
   };

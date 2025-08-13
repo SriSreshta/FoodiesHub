@@ -42,11 +42,11 @@ function CreateRecipe() {
         "http://localhost:3001/recipes",
         { ...recipe },
         {
-          headers: { authorization: cookies.access_token },
+          headers: { Authorization: `Bearer ${cookies.access_token}` },
         }
       );
-      alert("Recipe Created!");
-      // Reset fields after submit
+      alert("✅ Recipe Created!");
+      // Reset form fields
       setRecipe({
         name: "",
         description: "",
@@ -58,7 +58,11 @@ function CreateRecipe() {
       });
       navigate("/");
     } catch (error) {
-      console.error(error);
+      console.error("❌ Error creating recipe:", error.response?.data || error.message);
+      alert(
+        error.response?.data?.message ||
+          "Failed to create recipe. Please make sure you are logged in."
+      );
     }
   };
 
@@ -83,8 +87,8 @@ function CreateRecipe() {
             onChange={handleChange}
             required
           ></textarea>
-           
-           <br />
+
+          <br />
           <label>Ingredients: </label>
           {recipe.ingredients.map((ingredient, index) => (
             <input
@@ -102,7 +106,8 @@ function CreateRecipe() {
           >
             + Add Ingredient
           </button>
-          <br /> 
+
+          <br />
           <label>Instructions:</label>
           <textarea
             name="instructions"
@@ -120,7 +125,7 @@ function CreateRecipe() {
             required
           />
 
-          <label>Cooking Time(minutes):</label>
+          <label>Cooking Time (minutes):</label>
           <input
             type="number"
             name="cookingTime"
