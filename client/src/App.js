@@ -8,6 +8,7 @@ import Login from "./pages/login";
 import Register from "./pages/register";
 import CreateRecipe from "./pages/create-recipe";
 import SavedRecipes from "./pages/saved-recipes";
+import PrivateRoute from "./components/privateRoute";
 
 function App() {
   return (
@@ -15,12 +16,15 @@ function App() {
       <Navbar />
       <div className="container mx-auto p-4">
         <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/auth" element={<Login />} />
+         {/* Public routes */}
+          <Route path="/" element={<Login />} />
           <Route path="/register" element={<Register />} />
-          <Route path="/create-recipe" element={<CreateRecipe />} />
-          <Route path="/saved-recipes" element={<SavedRecipes />} />
-        </Routes>
+
+         {/* Protected routes */}
+          <Route path="/home" element={<PrivateRoute><Home /></PrivateRoute>} />
+          <Route path="/create-recipe" element={<PrivateRoute><CreateRecipe /></PrivateRoute>} />
+          <Route path="/saved-recipes" element={<PrivateRoute><SavedRecipes /></PrivateRoute>} />
+       </Routes>
       </div>
     </Router>
   );

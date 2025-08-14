@@ -1,14 +1,21 @@
 // client/src/pages/Login.js
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { useCookies } from "react-cookie";
 import { useNavigate, Link } from "react-router-dom";
 
 function Login() {
-  const [_, setCookies] = useCookies(["access_token"]);
+  const [cookies, setCookies] = useCookies(["access_token"]);
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const navigate = useNavigate();
+
+  // ✅ Redirect if already logged in
+  useEffect(() => {
+    if (cookies.access_token || localStorage.getItem("access_token")) {
+      navigate("/home");
+    }
+  }, [cookies, navigate]);
 
   const handleSubmit = async (event) => {
     event.preventDefault();
@@ -17,12 +24,14 @@ function Login() {
         username,
         password,
       });
-
       // Save token in cookies
       setCookies("access_token", result.data.token);
 
+      // ALSO save token in localStorage
+      localStorage.setItem("access_token", result.data.token);
+
       // Save userID in localStorage for later use
-      window.localStorage.setItem("userID", result.data.userID);
+      localStorage.setItem("userID", result.data.userID);
 
       // Go to home/dashboard after successful login
       navigate("/home");
