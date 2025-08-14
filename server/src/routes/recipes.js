@@ -75,6 +75,8 @@ router.get("/:recipeId", async (req, res) => {
  * @desc    Save a recipe for a user
  */
 router.put("/save", verifyToken, async (req, res) => {
+   console.log("Decoded user from token:", req.user); // <-- Add this
+
   try {
     const { recipeID } = req.body;
 
@@ -138,3 +140,4 @@ router.get("/savedRecipes/:userId", async (req, res) => {
 });
 
 export default router;
+

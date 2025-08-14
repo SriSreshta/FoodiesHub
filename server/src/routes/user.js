@@ -17,7 +17,10 @@ const verifyToken = (req, res, next) => {
     return res.status(401).json({ message: "Authorization header missing" });
   }
 
-  const token = authHeader.split(" ")[1]; // Expecting "Bearer <token>"
+  // Support both "Bearer <token>" and "<token>"
+  const token = authHeader.startsWith("Bearer ")
+    ? authHeader.split(" ")[1]
+    : authHeader.trim();
 
   if (!token) {
     return res.status(401).json({ message: "Token missing" });
@@ -90,5 +93,6 @@ router.post("/login", async (req, res) => {
 router.get("/profile", verifyToken, async (req, res) => {
   res.json({ message: "Profile data", user: req.user });
 });
+
 export { verifyToken };
 export default router;

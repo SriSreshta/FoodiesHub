@@ -1,25 +1,30 @@
 import React, { useEffect, useState } from "react";
 import { useGetUserID } from "../hooks/useGetUserID";
+import { useCookies } from "react-cookie";
 import axios from "axios";
 
 function SavedRecipes() {
   const [savedRecipes, setSavedRecipes] = useState([]);
   const userID = useGetUserID();
+  const [cookies] = useCookies(["access_token"]);
 
   useEffect(() => {
     const fetchSavedRecipes = async () => {
       try {
         const response = await axios.get(
-          `http://localhost:3001/recipes/savedRecipes/${userID}`
+          `http://localhost:3001/recipes/savedRecipes/${userID}`,
+          { headers: { Authorization: `Bearer ${cookies.access_token}` } }
         );
         setSavedRecipes(response.data.savedRecipes || []);
       } catch (err) {
-        console.log(err);
+        console.log("Error fetching saved recipes:", err);
       }
     };
 
-    fetchSavedRecipes();
-  }, [userID]);
+    if (userID) {
+      fetchSavedRecipes();
+    }
+  }, [userID, cookies.access_token]);
 
   return (
     <div className="page-container">
