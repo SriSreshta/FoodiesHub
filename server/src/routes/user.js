@@ -11,26 +11,28 @@ const router = express.Router();
  * Middleware to verify JWT token
  */
 const verifyToken = (req, res, next) => {
-  const authHeader = req.headers.authorization;
-
-  if (!authHeader) {
-    return res.status(401).json({ message: "Authorization header missing" });
-  }
-
-  // Support both "Bearer <token>" and "<token>"
-  const token = authHeader.startsWith("Bearer ")
-    ? authHeader.split(" ")[1]
-    : authHeader.trim();
-
-  if (!token) {
-    return res.status(401).json({ message: "Token missing" });
-  }
-
   try {
+    const authHeader = req.headers.authorization;
+
+    if (!authHeader) {
+      return res.status(401).json({ message: "Authorization header missing" });
+    }
+
+    // Extract token (handles "Bearer <token>" or just "<token>")
+    const token = authHeader.startsWith("Bearer ")
+      ? authHeader.slice(7).trim()
+      : authHeader.trim();
+
+    if (!token) {
+      return res.status(401).json({ message: "Token missing" });
+    }
+
+    // Verify token
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    req.user = decoded; // Attach user payload to request
+    req.user = decoded; // Add decoded payload to request object
     next();
   } catch (err) {
+    console.error("Token verification failed:", err.message);
     return res.status(403).json({ message: "Invalid or expired token" });
   }
 };
@@ -39,6 +41,10 @@ const verifyToken = (req, res, next) => {
 router.post("/register", async (req, res) => {
   try {
     const { username, password } = req.body;
+
+    if (!username || !password) {
+      return res.status(400).json({ message: "Username and password are required" });
+    }
 
     // Check if username exists
     const existingUser = await UserModel.findOne({ username });
@@ -53,7 +59,7 @@ router.post("/register", async (req, res) => {
     const newUser = new UserModel({ username, password: hashedPassword });
     await newUser.save();
 
-    res.json({ message: "User registered successfully", user: newUser });
+    res.json({ message: "User registered successfully" });
   } catch (err) {
     res.status(500).json({ message: "Server error", error: err.message });
   }
@@ -63,6 +69,10 @@ router.post("/register", async (req, res) => {
 router.post("/login", async (req, res) => {
   try {
     const { username, password } = req.body;
+
+    if (!username || !password) {
+      return res.status(400).json({ message: "Username and password are required" });
+    }
 
     // Find user
     const user = await UserModel.findOne({ username });
@@ -83,7 +93,12 @@ router.post("/login", async (req, res) => {
       { expiresIn: "1h" }
     );
 
-    res.json({ message: "Login successful", token });
+    // Send token and userId for frontend usage
+    res.json({
+      message: "Login successful",
+      token,
+      userId: user._id
+    });
   } catch (err) {
     res.status(500).json({ message: "Server error", error: err.message });
   }

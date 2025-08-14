@@ -1,3 +1,4 @@
+// backend/routes/recipes.js
 import express from "express";
 import mongoose from "mongoose";
 import { RecipesModel } from "../models/Recipes.js";
@@ -36,12 +37,12 @@ router.post("/", verifyToken, async (req, res) => {
       instructions,
       imageUrl,
       cookingTime,
-      userOwner: req.user.id, // pulled from token
+      userOwner: req.user.id,
     });
 
     const result = await recipe.save();
 
-    // Automatically add the created recipe to user's savedRecipes
+    // Automatically save the recipe to the creator's savedRecipes
     await UserModel.findByIdAndUpdate(
       req.user.id,
       { $addToSet: { savedRecipes: result._id } },
@@ -72,14 +73,11 @@ router.get("/:recipeId", async (req, res) => {
 
 /**
  * @route   PUT /save
- * @desc    Save a recipe for a user
+ * @desc    Save a recipe for a user (Protected)
  */
 router.put("/save", verifyToken, async (req, res) => {
-   console.log("Decoded user from token:", req.user); // <-- Add this
-
   try {
     const { recipeID } = req.body;
-
     if (!recipeID) {
       return res.status(400).json({ message: "Recipe ID is required" });
     }
@@ -90,7 +88,6 @@ router.put("/save", verifyToken, async (req, res) => {
     const user = await UserModel.findById(req.user.id);
     if (!user) return res.status(404).json({ message: "User not found" });
 
-    // Only push if not already saved
     if (!user.savedRecipes.includes(recipeID)) {
       user.savedRecipes.push(recipeID);
       await user.save();
@@ -105,7 +102,7 @@ router.put("/save", verifyToken, async (req, res) => {
 
 /**
  * @route   GET /savedRecipes/ids/:userId
- * @desc    Get IDs of saved recipes for a user
+ * @desc    Get only IDs of saved recipes
  */
 router.get("/savedRecipes/ids/:userId", async (req, res) => {
   try {
@@ -121,18 +118,14 @@ router.get("/savedRecipes/ids/:userId", async (req, res) => {
 
 /**
  * @route   GET /savedRecipes/:userId
- * @desc    Get saved recipes for a user
+ * @desc    Get full saved recipes
  */
 router.get("/savedRecipes/:userId", async (req, res) => {
   try {
-    const user = await UserModel.findById(req.params.userId);
+    const user = await UserModel.findById(req.params.userId).populate("savedRecipes");
     if (!user) return res.status(404).json({ message: "User not found" });
 
-    const savedRecipes = await RecipesModel.find({
-      _id: { $in: user.savedRecipes },
-    });
-
-    res.status(200).json({ savedRecipes });
+    res.status(200).json({ savedRecipes: user.savedRecipes });
   } catch (err) {
     console.error("Error fetching saved recipes:", err);
     res.status(500).json({ message: "Failed to fetch saved recipes" });
@@ -140,4 +133,3 @@ router.get("/savedRecipes/:userId", async (req, res) => {
 });
 
 export default router;
-
